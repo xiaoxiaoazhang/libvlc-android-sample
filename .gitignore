@@ -6,4 +6,4 @@
 /build
 /captures
 /vlc-android
-/libvlc/*.aar
+#/libvlc/*.aar

@@ -39,6 +39,7 @@ public class JavaActivity extends AppCompatActivity implements IVLCVout.OnNewVid
     private static final boolean ENABLE_SUBTITLES = true;
     private static final String TAG = "JavaActivity";
     private static final String ASSET_FILENAME = "bbb.m4v";
+    private static final String URL_RTSP = "rtsp://10.10.18.29:8554/vlc";
     private static final int SURFACE_BEST_FIT = 0;
     private static final int SURFACE_FIT_SCREEN = 1;
     private static final int SURFACE_FILL = 2;
@@ -73,6 +74,29 @@ public class JavaActivity extends AppCompatActivity implements IVLCVout.OnNewVid
 
         final ArrayList<String> args = new ArrayList<>();
         args.add("-vvv");
+//        1. 解决播放延时
+        args.add("--network-caching=200");
+        args.add("--rtsp-caching=200");
+        args.add("--file-caching=200");
+        args.add("--live-caching=200");
+        args.add("--disc-caching=200");
+        args.add("--sout-mux-caching=200");
+        args.add("--codec=mediacodec_ndk,mediacodec_jni,iomx,all");
+        args.add("--demux=h264");
+
+        args.add("--audio-time-stretch");
+        args.add("--avcodec-skiploopfilter");
+        args.add("3");
+        args.add("--avcodec-skip-frame");
+        args.add("2");
+        args.add("--avcodec-skip-idct");
+        args.add("2");
+//        2.视频进行放置90、180、270度，或者是水平方向、垂直方向翻转
+        args.add("--transform-type=vflip"); //transform-type有很多选项：90、180、270、hflip、vflip、transpose、antitranspose 使用中只能选一个
+        args.add("--video-filter=transform");
+//        3.不要音频输出
+        args.add("--no-audio");
+
         mLibVLC = new LibVLC(this, args);
         mMediaPlayer = new MediaPlayer(mLibVLC);
 
@@ -116,14 +140,16 @@ public class JavaActivity extends AppCompatActivity implements IVLCVout.OnNewVid
         else
             vlcVout.setVideoView(mVideoTexture);
         vlcVout.attachViews(this);
-
-        try {
-            final Media media = new Media(mLibVLC, getAssets().openFd(ASSET_FILENAME));
-            mMediaPlayer.setMedia(media);
-            media.release();
-        } catch (IOException e) {
-            throw new RuntimeException("Invalid asset folder");
-        }
+        final Media media;
+//        try {
+//          media = new Media(mLibVLC, getAssets().openFd(ASSET_FILENAME).getFileDescriptor());
+//        } catch (IOException e) {
+//            throw new RuntimeException("Invalid asset folder");
+//        }
+        media = new Media(mLibVLC, Uri.parse(URL_RTSP));
+        media.setHWDecoderEnabled(true, true); // 开启硬件解码
+        mMediaPlayer.setMedia(media);
+        media.release();
         mMediaPlayer.play();
 
         if (mOnLayoutChangeListener == null) {
